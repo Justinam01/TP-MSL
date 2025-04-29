@@ -1,0 +1,538 @@
+---
+title: "TP1 Modèle à Structure Latente"
+author: "AMEDEKPEDZI Komi Justin et ZENG Yuxuan"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,      # Masquer le code R
+  warning = FALSE,   # Masquer les avertissements
+  message = FALSE    # Masquer les messages
+)
+```
+
+
+```{r}
+library(MASS)
+data(crabs)
+#summary(crabs)
+```
+```{r}
+#head(crabs)
+```
+
+
+```{r}
+crabs_data <- crabs[, 4:8]
+#head(crabs_data)
+```
+
+# Partie 1 : Analyse en Composantes Principales et Visualisation
+
+Dans cette section nous nous concentrerons sur l'application de l'analyse en composantes principales (ACP) pour réduire la dimensionnalité des données tout en maximisant la variance expliquée. Nous explorerons les résultats de l'ACP, y compris la projection des données sur les différentes composantes principales et leur capacité à distinguer les espèces et les sexes.
+La proportion de variance de ces données expliquée respectivement par leur première et deuxième composante principale.
+
+```{r}
+pca <- prcomp(crabs_data, scale. = TRUE)
+summary(pca)
+```
+La première composante principale (PC1) explique 95,78% de la variance totale, ce qui capture presque toute l’information des variables.
+La deuxième composante principale (PC2) ajoute 3,03%, avec une proportion cumulative atteignant 98,81%.
+Les composantes restantes (PC3 à PC5) expliquent très peu de variance (<1%) et peuvent être négligées.
+Conclusion : L’utilisation des deux premières composantes principales est suffisante pour la visualisation et l’analyse, tout en réduisant la complexité dimensionnelle.
+
+
+## Projection des données sur leur première composante principale
+
+```{r}
+plot(pca$x[, 1],
+     main = "Projection on First Principal Component",
+     xlab = "Observation Index", ylab = "PC1",
+     col = crabs$sp)
+legend("topright", legend = unique(crabs$sp), col = unique(crabs$sp), pch = 1)
+```
+Ce graphique illustre la projection des données sur la première composante principale (PC1), avec une distinction claire entre les deux groupes (B et O) basés sur la variable crabs$sp :
+
+Séparation des groupes : Les groupes B (noir) et O (rouge) sont nettement séparés, ce qui montre que la PC1 distingue efficacement les deux catégories.
+Tendance interne : Les données dans chaque groupe montrent une certaine distribution linéaire le long de la PC1, ce qui peut refléter la structure intrinsèque des variables.
+
+Conclusion : La projection sur la première composante principale offre une excellente séparation des groupes, confirmant que cette composante capte l’essentiel des variations dans les données. Cela justifie son utilisation pour l’analyse ultérieure.
+
+
+## Projection des données sur leur deuxième composante principale
+
+```{r}
+plot(pca$x[, 2],
+     main = "Projection on Second Principal Component",
+     xlab = "Observation Index", ylab = "PC2",
+     col = crabs$sp)
+legend("topright", legend = unique(crabs$sp), col = unique(crabs$sp), pch = 1)
+```
+Ce graphique montre la projection des données sur la deuxième composante principale (PC2) :
+
+## Caractéristiques des groupes : 
+Les groupes B (noir) et O (rouge) ne sont pas totalement séparés sur PC2, mais on observe des tendances distinctes.
+
+## Explication de la variance : 
+Avec une proportion de variance de seulement 3,03%, PC2 joue un rôle mineur dans la séparation globale, mais capture des variations secondaires importantes.
+
+## Observation des tendances : 
+
+Les données montrent une dispersion plus importante dans le groupe B, indiquant des variations internes plus marquées.
+
+## Conclusion : 
+
+Bien que PC2 ait une contribution limitée à la variance totale, elle apporte des informations supplémentaires sur les différences intra-groupe, complétant ainsi l’analyse basée sur PC1.
+
+
+# La projection de ces données sur leurs deux premières composantes principales
+
+```{r}
+plot(pca$x[, 1], pca$x[, 2],
+     main = "Projection on First Two Principal Components",
+     xlab = "PC1", ylab = "PC2",
+     col = crabs$sp, pch = as.numeric(crabs$sex))
+legend("topright", legend = c("Species 1", "Species 2"), col = c(1, 2), pch = 1)
+```
+
+
+## Classification des espèces :
+
+La première composante principale (PC1) sépare clairement les deux espèces (Species 1 et Species 2). Les espèces 1 se situent principalement à gauche (valeurs négatives), tandis que les espèces 2 se concentrent à droite (valeurs positives).
+
+## Classification des sexes :
+La deuxième composante principale (PC2) montre une séparation claire entre les sexes. Les triangles (un sexe) se trouvent majoritairement dans la partie supérieure du graphique, tandis que les cercles (l’autre sexe) occupent la partie inférieure.
+Bien que PC2 explique seulement 3,03% de la variance, elle capture des différences significatives entre les sexes.
+
+## Conclusion : 
+La composante PC1 est idéale pour distinguer les espèces, tandis que la composante PC2 est essentielle pour différencier les sexes. Ces deux composantes sont complémentaires pour analyser les données.
+
+
+Le rôle du premier composant principal (PC1) :
+Comme le montre la première image, les données forment une séparation nette en direction de la première composante principale, qui reflète principalement les différences entre les espèces.
+La première composante principale capture la plus grande variation directionnelle des données, montrant des différences significatives entre les espèces.
+
+Le rôle du deuxième composant principal (PC2) :
+La deuxième image montre la projection sur le deuxième composant principal. Bien qu’il ne sépare pas complètement les espèces, il peut contenir des informations sur des traits liés au sexe.
+
+La combinaison des deux premiers composants principaux (Figure 2d) :
+La figure 2d révèle la projection des deux composantes principales ensemble:
+Forme (genre): les points de données sont divisés en deux groupes par sexe (le sexe est marqué par la forme), indiquant que le sexe est la principale variable de séparation sur ces deux composantes principales.
+Couleur (espèce) : La répartition des couleurs est chaotique, sans séparation significative entre les espèces. Cela indique que les espèces ne peuvent pas être bien distinguées en s'appuyant uniquement sur les deux premières composantes principales.
+
+
+# Partie 2 : Clustering K-means et Hiérarchique
+
+Le clustering est une méthode essentielle pour grouper des observations similaires au sein d'un ensemble de données. Dans cette partie, nous comparerons deux approches de clustering : K-means et le clustering hiérarchique. Nous évaluerons l'efficacité de chaque méthode en termes de séparation des classes et de qualité des regroupements, tout en analysant les implications de chaque technique pour une classification précise des données.
+```{r}
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00236/seeds_dataset.txt"
+seeds <- read.table(url, header = FALSE)
+colnames(seeds) <- c("Area", "Perimeter", "Compactness", "Kernel.Length", "Kernel.Width", "Asymmetry", "Groove.Length", "Type")
+#head(seeds)
+```
+
+```{r}
+#str(seeds)
+#summary(seeds)
+```
+
+#  Affichage des histogrammes de chaque variable
+```{r}
+par(mfrow = c(2, 4)) 
+
+for (i in 1:7) {
+  hist(seeds[, i],
+       main = paste("Histogram of", colnames(seeds)[i]),
+       xlab = colnames(seeds)[i])
+}
+
+par(mfrow = c(1, 1))
+```
+Les histogrammes montrent la distribution des différentes variables du jeu de données seeds. La variable Area présente une distribution légèrement asymétrique avec une majorité de valeurs autour de 14 à 16. La variable Perimeter affiche une distribution similaire, concentrée entre 13.5 et 15.5. La Compactness montre une distribution étroite et presque symétrique autour de 0.87. La Kernel.Length présente une distribution étalée, centrée autour de 5.5, avec quelques valeurs extrêmes. La Kernel.Width a une distribution relativement symétrique autour de 3.2. La Asymmetry présente une distribution asymétrique, avec un pic entre 0 et 4, mais une longue traîne vers des valeurs plus élevées. Enfin, la Groove.Length est centrée autour de 5.5 avec une légère asymétrie.
+
+# Nuage de points en dimension deux
+```{r}
+pairs(seeds[, 1:7], main = "Scatterplot Matrix of Seeds Data")
+```
+Cette figure est une matrice de nuages de points de données de départ, utilisée pour montrer la relation entre les variables. Chaque petit graphique montre la distribution de dispersion entre deux variables, fournissant une observation visuelle de la corrélation entre les variables.
+
+## Dépendance linéaire:
+Il existe une forte relation linéaire positive entre la surface, le périmètre et la longueur du noyau, indiquant que la taille de la zone est principalement affectée par le périmètre et la longueur des graines.
+Kernel.Length et Kernel.Width ont également une certaine corrélation positive, mais la corrélation est faible.
+
+## Mode non linéaire:
+Un modèle curviligne peut être observé entre la compacité et d'autres variables telles que la surface, le noyau. la longueur, plutôt qu'une simple relation linéaire.
+Cela signifie que la compacité joue un rôle unique dans la description des propriétés de forme qui ne peuvent pas être expliquées uniquement par d'autres variables.
+
+## Corrélation plus faible:
+La répartition dispersée des points entre l'asymétrie et d'autres variables suggère qu'elle pourrait apporter une contribution indépendante à la classification des graines.
+Groove.Length a également montré de faibles corrélations avec d'autres variables et peut jouer un rôle mineur dans la différenciation des classes de graines.
+
+
+# Nuage de points en dimension trois
+```{r}
+library(scatterplot3d)
+scatterplot3d(seeds$Area, seeds$Perimeter, seeds$Kernel.Length, 
+              color = as.numeric(seeds$Type), pch = 19,
+              xlab = "Area", ylab = "Perimeter", zlab = "Kernel Length")
+```
+
+```{r}
+pca <- prcomp(seeds[, 1:7], scale. = TRUE)
+#summary(pca)
+```
+
+# Graphique de la proportion de variance expliquée des composantes principales
+```{r}
+barplot(summary(pca)$importance[2, ], main = "Proportion of Variance Explained", xlab = "Principal Component", ylab = "Variance Proportion")
+```
+## Résultats de l'ACP :
+PC1 explique 71,87% de la variance totale et constitue la dimension la plus importante.
+PC2 ajoute 17,11% de la variance, portant le cumul à 88,98%. Ces deux premières composantes capturent l'essentiel des informations des données.
+Les composantes suivantes (PC3 et au-delà) ont une contribution négligeable, avec moins de 10% de variance expliquée.
+
+## Conclusion :
+Les deux premières composantes principales suffisent pour la plupart des analyses. Si une précision supplémentaire est requise, inclure PC3 (cumul à 98,66%) pourrait être pertinent.
+Ces résultats indiquent que la réduction de dimension est réalisable sans perte significative d'informations essentielles.
+
+
+
+```{r}
+# Projet aux deux premières composantes principales
+plot(pca$x[, 1:2], col = as.numeric(seeds$Type), pch = 19,
+     main = "Projection on First Two Principal Components",
+     xlab = "PC1", ylab = "PC2")
+```
+## Description du graphique :
+Ce graphique montre la projection des données sur les deux premières composantes principales (PC1 et PC2).
+Chaque point représente un échantillon, coloré en fonction de son type (Type).
+
+## Observations principales :
+PC1 joue un rôle dominant dans la séparation des classes, avec une forte variation et une large répartition des points.
+PC2 complète cette séparation, en distinguant notamment la catégorie rouge des autres groupes.
+
+## Conclusion :
+Les deux premières composantes principales permettent une bonne distinction visuelle des classes, confirmant la pertinence de l'ACP pour réduire la dimensionnalité des données tout en préservant les informations essentielles.
+
+
+```{r}
+seeds_scaled <- scale(seeds[, 1:7])
+
+# Règle du coude : Calculer l'erreur quadratique totale (WSS) pour différentes valeurs de k
+wss <- sapply(1:10, function(k) {
+  kmeans(seeds_scaled, centers = k, nstart = 5)$tot.withinss
+})
+
+# Dessiner le diagramme du coude
+plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of clusters K", ylab = "Total Within Sum of Squares")
+```
+## Description du graphique :
+Ce diagramme illustre la méthode du coude pour déterminer le nombre optimal de clusters (k) en traçant la somme totale des carrés internes (WSS) en fonction de k.
+
+## Observations principales :
+Une forte diminution de WSS est observée lorsque k passe de 2 à 3, indiquant une amélioration significative de la qualité du regroupement.
+Après k=3, la courbe devient plus plate, signalant une réduction marginale des erreurs internes.
+
+## Conclusion :
+Le point de coude est identifié autour de k=3, suggérant que c'est le nombre optimal de clusters pour ces données.
+
+```{r}
+set.seed(111)
+# Testez différentes valeurs nstart
+wcss_results <- sapply(c(1, 3, 5, 10, 20), function(n) {
+  kmeans_res <- kmeans(seeds_scaled, centers = 3, nstart = n)
+  kmeans_res$tot.withinss
+})
+
+# Visualisez l'impact des différents nstarts sur WCSS
+plot(c(1, 3, 5, 10, 20), wcss_results, type = "b", pch = 19,
+     xlab = "nstart", ylab = "Total Within-Cluster Sum of Squares",
+     main = "Effect of nstart on K-means Results")
+
+```
+D’après la graphique, la meilleure valeur pour nstart se situe généralement au premier point où la courbe de WSS devient stable, par exemple nstart=5. À ce stade, les résultats de regroupement sont suffisamment stables, et augmenter davantage nstart n’apporte que peu d’amélioration. Si la distribution des données est particulièrement complexe, augmenter la valeur de nstart peut être utile, mais cela doit être équilibré avec le temps de calcul et l’amélioration des résultats.
+
+```{r}
+set.seed(123)
+kmeans_res <- kmeans(seeds_scaled, centers = 3, nstart = 5)
+print(kmeans_res)
+
+# Matrice de confusion entre les affectations de cluster et les classes réelles
+table(kmeans_res$cluster, seeds$Type)
+
+```
+## Résultats du clustering :
+-Le point central de chaque cluster est représenté par la valeur moyenne calculée par ses variables caractéristiques (telles que la superficie, le périmètre, etc.). Les moyennes des différents clusters sont significativement différentes, ce qui indique que la méthode K-means distingue efficacement les modèles dans les données.
+-Les tailles des clusters sont équilibrées : 71, 67 et 72 observations respectivement.
+-La somme des carrés internes est cohérente entre les clusters(Within cluster sum of squares by cluster), indiquant une séparation équilibrée des données.
+
+## Performance globale :
+La matrice de confusion révèle des erreurs dans les affectations. Par exemple, le cluster 1 contient 5 observations mal attribuées à la classe réelle 2.
+Le ratio between_SS/total_SS=70,7% montre que le modèle explique une grande partie de la variance des données, mais il reste une marge d'amélioration.
+
+## Conclusion :
+Le modèle K-means est performant pour diviser les données en 3 clusters, mais il existe des zones de confusion à explorer avec des méthodes complémentaires.
+
+
+```{r}
+# Utiliser directement la matrice de chargement calculée du modèle PCA pca
+centers_pca <- as.matrix(kmeans_res$centers) %*% pca$rotation[, 1:2]
+
+# Tracez la projection PCA et étiquetez le centre de gravité
+plot(pca$x[, 1:2], col = kmeans_res$cluster, pch = 19,
+     main = "K-means Clustering with K = 3",
+     xlab = "PC1", ylab = "PC2")
+
+#Ajouter un point centroïde
+points(centers_pca, col = 1:3, pch = 8, cex = 2)  
+
+```
+## Contenu du graphique :
+Le graphique montre les résultats du clustering K-means projetés sur les deux premières composantes principales (PC1 et PC2).
+Les couleurs (noir, rouge et vert) représentent les différents clusters, et les étoiles (*) indiquent les centroïdes.
+
+## Observations principales :
+Les clusters rouge et vert sont bien séparés, ce qui indique une bonne performance du modèle pour ces deux groupes.
+Le cluster noir est situé au centre et présente un chevauchement partiel avec les autres clusters, ce qui peut refléter des limites dans la séparation pour cette zone.
+
+## Évaluation des résultats :
+La projection sur PC1 et PC2 a permis de visualiser efficacement la séparation des clusters.
+Les zones de chevauchement, notamment pour le cluster noir, pourraient être explorées davantage en incluant des composantes principales supplémentaires ou en affinant les paramètres de clustering.
+
+# Observation des changements dans les six premières itérations
+```{r}
+kmeans_iterations <- list()
+
+# Initialiser un centre de gravité initial aléatoire
+init_centers <- matrix(runif(21, min = -2, max = 2), nrow = 3, byrow = TRUE)
+
+# calculer PCA
+pca <- prcomp(seeds_scaled, scale. = TRUE)
+
+# Itérer étape par étape
+for (i in 1:6) {
+  kmeans_iterations[[i]] <- kmeans(seeds_scaled, centers = init_centers, iter.max = i, nstart = 1)
+}
+
+#Visualisez les résultats de chaque itération
+par(mfrow = c(2, 3))  
+for (i in 1:6) {
+  plot(
+    pca$x[, 1:2], 
+    col = kmeans_iterations[[i]]$cluster,  
+    pch = 19,  
+    main = paste("Iteration", i),  
+    xlab = "PC1", 
+    ylab = "PC2"
+  )
+  
+  # Projeter les centroïdes dans l'espace PCA
+  centers_pca <- as.matrix(kmeans_iterations[[i]]$centers) %*% pca$rotation[, 1:2]
+  
+  points(
+    centers_pca,
+    col = 1:3, 
+    pch = 8, 
+    cex = 3  
+  )
+}
+
+```
+Les résultats montrent que la position initiale des centroïdes a un impact significatif sur le processus de convergence de l’algorithme k-means. Lors de la première itération, les centroïdes se déplacent fortement depuis leurs positions aléatoires vers les centres des clusters. Dès la deuxième itération, les centroïdes restent stables, indiquant que l’algorithme a atteint une convergence locale où la répartition des clusters et les positions des centroïdes ne changent plus. 
+
+Cela illustre l’importance du choix des centroïdes initiaux dans la rapidité et la qualité de convergence. Si les centroïdes restent immobiles dans les itérations ultérieures, on peut considérer que l’algorithme a atteint une convergence pratique, même si de légères modifications ne sont pas captées.
+
+# Calcul de l'indice de silhouette
+```{r}
+library(cluster)
+sil_Kmeans <- silhouette(kmeans_res$cluster, dist(seeds_scaled))
+plot(sil_Kmeans, main = "Silhouette Plot for K-means Clustering")
+```
+Ce graphique montre l'indice de silhouette et non pas la précision de chaque classe. Cet indice évalue la qualité du regroupement, avec des valeurs allant de -1 à 1 :
+
+## Signification de l'indice de silhouette :
+Proche de 1 : Les points sont bien regroupés dans leur cluster.
+Proche de 0 : Les points se trouvent à la frontière entre deux clusters.
+Valeurs négatives : Les points sont probablement mal classés dans un cluster incorrect.
+
+## Analyse des résultats :
+Cluster 1 (71 points, silhouette moyenne de 0.34) et Cluster 3 (72 points, silhouette moyenne de 0.40) montrent une qualité moyenne de regroupement.
+Cluster 2 (67 points, silhouette moyenne de 0.47) présente un meilleur regroupement avec des points bien séparés.
+Cluster 3 (72 points, silhouette moyenne de 0.40) La silhouette moyenne globale est de 0.4, indiquant une qualité modérée du regroupement.
+
+
+
+# Clustering hiérarchique ascendant
+
+## Calcul de la matrice de distance
+```{r}
+dist_mat <- dist(seeds_scaled)
+```
+
+# Implémentation le clustering hiérarchique avec différentes fonctions de linkage
+
+## Ward
+```{r}
+hc_ward <- hclust(dist_mat, method = "ward.D2")
+plot(hc_ward, main = "Hierarchical Clustering (Ward)", xlab = "", ylab = "Height", labels = FALSE)
+```
+## Ward Méthode :
+Le dendrogramme avec la méthode de Ward illustre le processus de regroupement basé sur la minimisation de la variance intra-classe.
+Le dendrogramme montre une structure hiérarchique claire, où chaque division est associée à une augmentation significative de la variance inter-classes.
+Cette méthode est particulièrement adaptée lorsque l'on souhaite obtenir des groupes compacts.
+
+# single linkage
+```{r}
+hc_single <- hclust(dist_mat, method = "single")
+plot(hc_single, main = "Hierarchical Clustering (Single)", xlab = "", ylab = "Height", labels = FALSE)
+```
+## Méthode Single Linkage :
+Le dendrogramme avec la méthode Single Linkage se base sur les points les plus proches pour effectuer les regroupements.
+Il peut produire des structures en chaîne allongées (effet "chain-link"), ce qui peut entraîner des formes de regroupement irrégulières.
+Cette méthode convient mieux aux situations où les données sont dispersées ou inégalement réparties.
+
+# Complete linkage
+```{r}
+hc_complete <- hclust(dist_mat, method = "complete")
+plot(hc_complete, main = "Hierarchical Clustering (Complete)", xlab = "", ylab = "Height", labels = FALSE)
+
+```
+Méthode Complete Linkage :
+Le dendrogramme avec la méthode Complete Linkage se base sur les points les plus éloignés pour effectuer les regroupements.
+Il génère généralement des groupes compacts avec de grandes distances entre les groupes.
+Cette méthode est idéale pour les données densément distribuées et lorsque des regroupements bien séparés sont souhaités.
+
+```{r}
+hc_average <- hclust(dist_mat, method = "average")
+plot(hc_complete, main = "Hierarchical Clustering (Average)", xlab = "", ylab = "Height", labels = FALSE)
+```
+## Méthode Average Linkage :
+Le dendrogramme avec la méthode Average Linkage calcule les distances moyennes entre tous les points des groupes.
+Comparée aux méthodes Single et Complete, Average Linkage produit des regroupements plus équilibrés, évitant l'effet "chain-link" et une compacité excessive.
+Elle est adaptée aux situations où un compromis entre la compacité intra-groupe et la séparation inter-groupe est souhaité.
+
+
+# Coupons l'arbre et visualisons les groupes
+```{r}
+# Coupez l'arbre pour obtenir 3 grappes
+hcc_ward <- cutree(hc_ward, k = 3)
+hcc_single <- cutree(hc_single,  k = 3)
+hcc_complete <- cutree(hc_complete, k = 3)
+hcc_average <- cutree(hc_average, k = 3)
+
+# Afficher la matrice de confusion
+table(hcc_ward, seeds$Type)
+table(hcc_single, seeds$Type)
+table(hcc_complete, seeds$Type)
+table(hcc_average, seeds$Type)
+```
+## Méthode de Ward :
+Performances optimales, avec une précision de classification élevée et peu de mauvaises classifications.
+Convient parfaitement aux données actuelles.
+
+## Méthode de Single Linkage :
+Performances les plus faibles, incapacité quasi totale à effectuer un bon regroupement, avec tous les éléments regroupés dans la première classe.
+Non recommandée pour les données actuelles.
+
+## Méthodes de Complete Linkage et Average Linkage :
+Performances similaires, précision moyenne, adaptées aux scénarios nécessitant un certain équilibre dans les regroupements.
+Entre les deux, la méthode de Complete Linkage est plus adaptée pour des séparations nettes des classes, tandis que la méthode d’Average Linkage est plus sensible à l’équilibre entre les classes.
+
+
+
+# Visualisation de l'ACP
+### On choisit la méthode de Ward parce que sa performance est meilleure.
+```{r}
+plot(pca$x[, 1:2], col = hcc_ward, pch = 19,
+     main = "Hierarchical Clustering on PCA Projection",
+     xlab = "PC1", ylab = "PC2")
+legend("topright", legend = paste("Cluster", 1:3), col = 1:3, pch = 19)
+
+```
+Ce graphique montre la projection en deux dimensions des résultats du clustering hiérarchique (méthode de Ward) à l'aide de l'ACP (Analyse en Composantes Principales) :
+
+## Trois clusters bien distincts :
+Les points rouges (Cluster 2), noirs (Cluster 1) et verts (Cluster 3) forment des groupes séparés dans l'espace bidimensionnel, indiquant que la méthode de Ward a efficacement distingué les catégories.
+
+## Distribution compacte des clusters :
+Les points à l'intérieur de chaque cluster sont regroupés de manière compacte, tandis que les distances entre les clusters sont relativement grandes, ce qui correspond à la caractéristique de la méthode de Ward (minimisation de la variance intra-cluster).
+
+## Rôle de l'ACP :
+Les deux premières composantes principales conservent l'essentiel de l'information des données initiales, permettant une visualisation claire des résultats du clustering dans un espace réduit.
+
+## Conclusion :
+Ce graphique met en évidence les performances de la méthode de Ward pour le clustering hiérarchique. Chaque cluster est bien séparé dans l'espace de l'ACP, ce qui démontre une bonne qualité de clustering.
+
+
+```{r}
+library(cluster)
+sil_hc <- silhouette(hcc_ward, dist_mat)
+plot(sil_hc, main = "Silhouette Plot for Hierarchical Clustering")
+
+```
+Cluster 1 (73 points, silhouette moyenne de 0,30) :
+Montre une qualité faible de regroupement.
+Les points sont probablement dispersés et se trouvent proches des frontières avec d'autres clusters.
+
+Cluster 2 (70 points, silhouette moyenne de 0,46) :
+Présente la meilleure qualité de regroupement.
+Les points sont bien regroupés et bien séparés des autres clusters.
+
+Cluster 3 (67 points, silhouette moyenne de 0,42) :
+Indique une qualité moyenne de regroupement.
+Bien que la séparation soit correcte, certains points pourraient être proches des frontières.
+
+Silhouette moyenne globale : 0,39
+Indique une qualité modérée du regroupement global.
+Bien que certains clusters (comme le Cluster 2) soient bien formés, la faible performance des Clusters 1 et 3 réduit la qualité globale.
+
+
+```{r}
+accuracy_kmeans <- sum(diag(table(kmeans_res$cluster, seeds$Type))) / nrow(seeds)
+accuracy_hc <- sum(diag(table(hcc_ward, seeds$Type))) / nrow(seeds)
+cat("accuracy_kmeans =" , accuracy_kmeans ,'\n')
+cat("accuracy_hc =" ,accuracy_hc,'\n')
+
+cat( "Coefficient de silhouette de Kmeans = ",mean(sil_Kmeans[, 3]),'\n' )
+cat( "Coefficient de silhouette de hc = ", mean(sil_hc[, 3]),'\n')
+```
+
+Pour le K-means : la précision obtenue est de 0.919 (91,9 %), le coefficient de silhouette moyen est de 0.4007. 
+Pour le clustering hiérarchique (Ward) : la précision est légèrement supérieure à 0.929 (92,8 %), le coefficient de silhouette moyen est légèrement inférieur, avec une valeur de 0.3926.
+
+## Analyse :
+Précision supérieure pour le clustering hiérarchique :
+La précision indique que le clustering hiérarchique classe mieux les observations en fonction des étiquettes réelles (seeds$Type) par rapport au K-means. Cela peut s’expliquer par la méthode de Ward, qui optimise la variance intra-classe et tend à mieux correspondre aux classes naturelles dans certains jeux de données.
+
+Coefficient de silhouette plus élevé pour le K-means :
+Le coefficient de silhouette moyen, bien que plus faible pour le clustering hiérarchique, reflète la qualité géométrique des clusters. Dans ce cas, le K-means semble mieux séparer les clusters sur la base des distances, ce qui donne des clusters géométriquement plus distincts.
+Pour le clustering hiérarchique, la séparation entre les clusters peut être moins nette. Par exemple, il est possible que des points proches de la frontière entre deux clusters soient mal intégrés dans leur cluster respectif, réduisant le score de silhouette.
+
+Conflit entre précision et qualité géométrique :
+Bien que le clustering hiérarchique soit plus précis en termes d’étiquettes, sa géométrie globale semble moins bien définie. Cela peut être dû à des clusters qui ne sont pas aussi compacts ou bien séparés que ceux obtenus par K-means.
+
+## Conclusion :
+K-means : Offre des clusters géométriquement mieux définis, comme le montre un coefficient de silhouette plus élevé, mais une précision légèrement inférieure.
+Clustering hiérarchique (Ward) : Donne une meilleure correspondance avec les classes réelles, mais ses clusters sont légèrement moins bien séparés.
+
+Donc, Le choix entre les deux méthodes dépend de l’objectif final. Si l’objectif est de maximiser la correspondance avec les étiquettes réelles, le clustering hiérarchique est plus adapté. Si l’objectif est de produire des clusters bien séparés géométriquement, K-means est préférable.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
